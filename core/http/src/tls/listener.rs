@@ -70,6 +70,10 @@ impl TlsListener {
         tls_config.ciphersuites = c.ciphersuites;
         tls_config.ignore_client_order = c.prefer_server_order;
         tls_config.set_single_cert(cert_chain, key).expect("invalid key");
+
+        #[cfg(not(feature = "http2"))]
+        tls_config.set_protocols(&[b"http/1.1".to_vec()]);
+        #[cfg(feature = "http2")]
         tls_config.set_protocols(&[b"h2".to_vec(), b"http/1.1".to_vec()]);
 
         let listener = TcpListener::bind(addr).await?;

@@ -407,6 +407,7 @@ impl Rocket<Orbit> {
 
         // Determine keep-alives.
         let http1_keepalive = self.config.keep_alive != 0;
+        #[cfg(feature = "http2")]
         let http2_keep_alive = match self.config.keep_alive {
             0 => None,
             n => Some(Duration::from_secs(n as u64))
@@ -456,10 +457,15 @@ impl Rocket<Orbit> {
 
         // NOTE: `hyper` uses `tokio::spawn()` as the default executor.
         let listener = CancellableListener::new(shutdown.clone(), listener, grace, mercy);
-        let server = hyper::Server::builder(Incoming::new(listener))
+        let server_builder = hyper::Server::builder(Incoming::new(listener))
             .http1_keepalive(http1_keepalive)
-            .http1_preserve_header_case(true)
-            .http2_keep_alive_interval(http2_keep_alive)
+            .http1_preserve_header_case(true);
+
+        #[cfg(feature = "http2")]
+            let server_builder = server_builder
+            .http2_keep_alive_interval(http2_keep_alive);
+
+        let server = server_builder
             .serve(hyper::service::make_service_fn(service_fn))
             .with_graceful_shutdown(shutdown.clone())
             .map_err(|e| Error::new(ErrorKind::Runtime(Box::new(e))));
