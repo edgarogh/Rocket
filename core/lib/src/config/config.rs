@@ -100,7 +100,10 @@ pub struct Config {
     pub shutdown: Shutdown,
     /// Max level to log. **(default: _debug_ `normal` / _release_ `critical`)**
     pub log_level: LogLevel,
-    /// Whether to use colors and emoji when logging. **(default: `true`)**
+    /// Whether to use colors and emoji when logging. **(default: `true` except if
+    /// [`$NO_COLOR`][NO_COLOR] is set)**
+    ///
+    /// [NO_COLOR]: https://no-color.org/
     #[serde(deserialize_with = "figment::util::bool_from_str_or_int")]
     pub cli_colors: bool,
     /// PRIVATE: This structure may grow (but never change otherwise) in a
@@ -165,6 +168,8 @@ impl Config {
     /// let config = Config::debug_default();
     /// ```
     pub fn debug_default() -> Config {
+        let no_color = std::env::var_os("NO_COLOR").is_some();
+
         Config {
             profile: Self::DEBUG_PROFILE,
             address: Ipv4Addr::new(127, 0, 0, 1).into(),
@@ -180,7 +185,7 @@ impl Config {
             secret_key: SecretKey::zero(),
             shutdown: Shutdown::default(),
             log_level: LogLevel::Normal,
-            cli_colors: true,
+            cli_colors: !no_color,
             __non_exhaustive: (),
         }
     }
